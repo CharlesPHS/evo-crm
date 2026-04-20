@@ -170,7 +170,7 @@ services:
     networks:
       - internal
 
-  evo-core:
+   evo-core:
     build:
       context: ./evo-ai-core-service-community
       dockerfile: Dockerfile
@@ -187,15 +187,16 @@ services:
       EVOLUTION_BASE_URL: http://evo-crm:3000
       EVO_AUTH_BASE_URL: http://evo-auth:3001
       AI_PROCESSOR_URL: http://evo-processor:8000
+      GIN_MODE: release
     depends_on:
       postgres:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:5555/api/v1/health"]
-      interval: 15s
-      timeout: 5s
-      retries: 5
-      start_period: 30s
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:5555/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 15
+      start_period: 90s
     deploy:
       resources:
         limits:
