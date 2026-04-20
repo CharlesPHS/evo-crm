@@ -1,3 +1,4 @@
+sudo tee /etc/dokploy/compose/evolution-crm-6co6wc/code/docker-compose.yml > /dev/null << 'EOF'
 services:
   postgres:
     image: pgvector/pgvector:pg16
@@ -42,6 +43,12 @@ services:
       redis:
         condition: service_healthy
     command: bash -c "bundle exec rails db:prepare && bundle exec rails s -p 3001 -b 0.0.0.0"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:3001/up || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
 
   evo-auth-sidekiq:
     build:
@@ -62,7 +69,6 @@ services:
   evo-crm:
     build:
       context: ./evo-ai-crm-community
-      # CORRIGIDO: Dockerfile fica em docker/
       dockerfile: docker/Dockerfile
       args:
         BUNDLE_WITHOUT: "development test"
@@ -136,7 +142,6 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-    # CORRIGIDO: healthcheck usando porta TCP já que /api/v1/health retorna 404
     healthcheck:
       test: ["CMD-SHELL", "nc -z localhost 5555 || exit 1"]
       interval: 15s
@@ -188,8 +193,8 @@ services:
         VITE_AUTH_API_URL: ${VITE_AUTH_API_URL}
         VITE_EVOAI_API_URL: ${VITE_EVOAI_API_URL}
         VITE_AGENT_PROCESSOR_URL: ${VITE_AGENT_PROCESSOR_URL}
+        VITE_WS_URL: ${VITE_WS_URL}
     restart: unless-stopped
-    # CORRIGIDO: frontend não depende de health de outros serviços — é estático
     depends_on:
       - evo-auth
       - evo-crm
@@ -200,3 +205,4 @@ volumes:
   crm_storage:
   crm_cache:
   processor_logs:
+EOF
