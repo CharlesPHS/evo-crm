@@ -13,8 +13,7 @@ services:
       interval: 10s
       timeout: 5s
       retries: 10
-    networks:
-      - internal
+      start_period: 15s
 
   redis:
     image: redis:alpine
@@ -24,99 +23,176 @@ services:
       - redis_data:/data
     healthcheck:
       test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
-    networks:
-      - internal
+      interval: 10s
+      timeout: 5s
+      retries: 10
 
   evo-auth:
     build:
       context: ./evo-auth-service-community
+      dockerfile: Dockerfile
     restart: unless-stopped
     env_file: .env
+    environment:
+      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379/1
+      POSTGRES_HOST: postgres
     depends_on:
-      - postgres
-      - redis
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     command: bash -c "bundle exec rails db:prepare && bundle exec rails s -p 3001 -b 0.0.0.0"
-    networks:
-      - internal
 
   evo-auth-sidekiq:
     build:
       context: ./evo-auth-service-community
+      dockerfile: Dockerfile
     restart: unless-stopped
     env_file: .env
+    environment:
+      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379/1
+      POSTGRES_HOST: postgres
     depends_on:
-      - postgres
-      - redis
-    command: bundle exec sidekiq
-    networks:
-      - internal
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: bash -c "bundle exec sidekiq"
 
   evo-crm:
     build:
       context: ./evo-ai-crm-community
+      # CORRIGIDO: Dockerfile fica em docker/
+      dockerfile: docker/Dockerfile
+      args:
+        BUNDLE_WITHOUT: "development test"
+        RAILS_ENV: production
+        RAILS_SERVE_STATIC_FILES: "true"
     restart: unless-stopped
     env_file: .env
+    environment:
+      RAILS_ENV: production
+      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379/0
+      POSTGRES_HOST: postgres
+      EVO_AUTH_SERVICE_URL: http://evo-auth:3001
+      EVO_AI_CORE_SERVICE_URL: http://evo-core:5555
+      BOT_RUNTIME_URL: http://evo-bot-runtime:8080
+      BOT_RUNTIME_SECRET: ${BOT_RUNTIME_SECRET}
+      BOT_RUNTIME_POSTBACK_BASE_URL: http://evo-crm:3000
+    volumes:
+      - crm_storage:/app/storage
+      - crm_cache:/app/tmp/cache
     depends_on:
-      - postgres
-      - redis
-      - evo-auth
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      evo-auth:
+        condition: service_healthy
     command: sh -c "bundle exec rails db:prepare && bundle exec rails s -p 3000 -b 0.0.0.0"
-    networks:
-      - internal
 
   evo-crm-sidekiq:
     build:
       context: ./evo-ai-crm-community
+      dockerfile: docker/Dockerfile
+      args:
+        BUNDLE_WITHOUT: "development test"
+        RAILS_ENV: production
+        RAILS_SERVE_STATIC_FILES: "true"
     restart: unless-stopped
     env_file: .env
+    environment:
+      RAILS_ENV: production
+      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379/0
+      POSTGRES_HOST: postgres
+      EVO_AUTH_SERVICE_URL: http://evo-auth:3001
+      EVO_AI_CORE_SERVICE_URL: http://evo-core:5555
+      BOT_RUNTIME_URL: http://evo-bot-runtime:8080
+      BOT_RUNTIME_SECRET: ${BOT_RUNTIME_SECRET}
+    volumes:
+      - crm_storage:/app/storage
+      - crm_cache:/app/tmp/cache
     depends_on:
-      - postgres
-      - redis
-    command: bundle exec sidekiq
-    networks:
-      - internal
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: sh -c "bundle exec sidekiq -C config/sidekiq.yml"
 
   evo-core:
     build:
       context: ./evo-ai-core-service-community
+      dockerfile: Dockerfile
     restart: unless-stopped
     env_file: .env
+    environment:
+      DB_HOST: postgres
+      DB_PORT: "5432"
+      DB_USER: ${POSTGRES_USERNAME}
+      DB_PASSWORD: ${POSTGRES_PASSWORD}
+      DB_NAME: ${POSTGRES_DATABASE}
+      DB_SSLMODE: disable
+      PORT: "5555"
     depends_on:
-      - postgres
-    networks:
-      - internal
+      postgres:
+        condition: service_healthy
+    # CORRIGIDO: healthcheck usando porta TCP já que /api/v1/health retorna 404
+    healthcheck:
+      test: ["CMD-SHELL", "nc -z localhost 5555 || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
 
   evo-processor:
     build:
       context: ./evo-ai-processor-community
+      dockerfile: Dockerfile
     restart: unless-stopped
     env_file: .env
+    environment:
+      POSTGRES_CONNECTION_STRING: postgresql://${POSTGRES_USERNAME}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DATABASE}
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+      REDIS_SSL: "false"
+      HOST: 0.0.0.0
+      PORT: "8000"
+    volumes:
+      - processor_logs:/app/logs
     depends_on:
-      - postgres
-      - redis
-    networks:
-      - internal
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
 
   evo-bot-runtime:
     build:
       context: ./evo-bot-runtime
+      dockerfile: Dockerfile
     restart: unless-stopped
     env_file: .env
+    environment:
+      LISTEN_ADDR: 0.0.0.0:8080
+      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
     depends_on:
-      - redis
-      - evo-processor
-    networks:
-      - internal
+      redis:
+        condition: service_healthy
 
   evo-frontend:
     build:
       context: ./evo-ai-frontend-community
+      dockerfile: Dockerfile
+      args:
+        VITE_API_URL: ${VITE_API_URL}
+        VITE_AUTH_API_URL: ${VITE_AUTH_API_URL}
+        VITE_EVOAI_API_URL: ${VITE_EVOAI_API_URL}
+        VITE_AGENT_PROCESSOR_URL: ${VITE_AGENT_PROCESSOR_URL}
     restart: unless-stopped
+    # CORRIGIDO: frontend não depende de health de outros serviços — é estático
     depends_on:
       - evo-auth
       - evo-crm
-    networks:
-      - internal
 
 volumes:
   postgres_data:
@@ -124,8 +200,3 @@ volumes:
   crm_storage:
   crm_cache:
   processor_logs:
-
-networks:
-  internal:
-    driver: bridge
-    internal: true
