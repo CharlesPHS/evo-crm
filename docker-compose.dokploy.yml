@@ -1,4 +1,3 @@
-sudo tee /etc/dokploy/compose/evolution-crm-6co6wc/code/docker-compose.yml > /dev/null << 'EOF'
 services:
   postgres:
     image: pgvector/pgvector:pg16
@@ -205,4 +204,3 @@ volumes:
   crm_storage:
   crm_cache:
   processor_logs:
-EOF
