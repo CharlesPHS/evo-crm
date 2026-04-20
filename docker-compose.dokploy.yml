@@ -18,6 +18,8 @@ services:
       resources:
         limits:
           memory: 512M
+    networks:
+      - internal
 
   redis:
     image: redis:alpine
@@ -34,6 +36,8 @@ services:
       resources:
         limits:
           memory: 256M
+    networks:
+      - internal
 
   evo-auth:
     build:
@@ -50,7 +54,6 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-    # CORRIGIDO: usa bash (imagem Debian/slim tem bash)
     command: bash -c "bundle exec rails db:prepare && bundle exec rails s -p 3001 -b 0.0.0.0"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:3001/health"]
@@ -62,6 +65,8 @@ services:
       resources:
         limits:
           memory: 768M
+    networks:
+      - internal
 
   evo-auth-sidekiq:
     build:
@@ -78,12 +83,13 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-    # CORRIGIDO: usa bash (imagem Debian/slim tem bash)
     command: bash -c "bundle exec sidekiq"
     deploy:
       resources:
         limits:
           memory: 512M
+    networks:
+      - internal
 
   evo-crm:
     build:
@@ -116,7 +122,6 @@ services:
         condition: service_healthy
       evo-auth:
         condition: service_healthy
-    # CORRIGIDO: Alpine usa sh, não bash
     command: sh -c "bundle exec rails db:prepare && bundle exec rails s -p 3000 -b 0.0.0.0"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:3000/health/live"]
@@ -128,6 +133,8 @@ services:
       resources:
         limits:
           memory: 1G
+    networks:
+      - internal
 
   evo-crm-sidekiq:
     build:
@@ -155,12 +162,13 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-    # CORRIGIDO: Alpine usa sh
     command: sh -c "bundle exec sidekiq -C config/sidekiq.yml"
     deploy:
       resources:
         limits:
           memory: 512M
+    networks:
+      - internal
 
   evo-core:
     build:
@@ -192,6 +200,8 @@ services:
       resources:
         limits:
           memory: 512M
+    networks:
+      - internal
 
   evo-processor:
     build:
@@ -226,6 +236,8 @@ services:
       resources:
         limits:
           memory: 512M
+    networks:
+      - internal
 
   evo-bot-runtime:
     build:
@@ -253,6 +265,8 @@ services:
       resources:
         limits:
           memory: 256M
+    networks:
+      - internal
 
   evo-frontend:
     build:
@@ -275,6 +289,8 @@ services:
       resources:
         limits:
           memory: 1G
+    networks:
+      - internal
 
 volumes:
   postgres_data:
@@ -282,3 +298,8 @@ volumes:
   crm_storage:
   crm_cache:
   processor_logs:
+
+networks:
+  internal:
+    driver: bridge
+    internal: true
