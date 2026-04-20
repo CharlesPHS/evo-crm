@@ -278,8 +278,6 @@ services:
         VITE_EVOAI_API_URL: ${VITE_EVOAI_API_URL:-https://crm-api.silveriosolucoes.com.br}
         VITE_AGENT_PROCESSOR_URL: ${VITE_AGENT_PROCESSOR_URL:-https://crm-api.silveriosolucoes.com.br}
     restart: unless-stopped
-    ports:
-      - "5173:80"
     depends_on:
       evo-auth:
         condition: service_healthy
