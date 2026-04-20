@@ -313,7 +313,9 @@ services:
       - "3030"
 
   evo_frontend:
-    image: evoapicloud/evo-ai-frontend-community:latest
+    build:
+      context: ./evo-ai-frontend-community
+      dockerfile: Dockerfile
     restart: unless-stopped
     environment:
       VITE_APP_ENV: production
