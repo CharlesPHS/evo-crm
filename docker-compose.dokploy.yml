@@ -55,8 +55,8 @@ services:
       test: ["CMD", "curl", "-f", "http://localhost:3001/health"]
       interval: 30s
       timeout: 10s
-      retries: 5
-      start_period: 90s
+      retries: 10
+      start_period: 120s
     deploy:
       resources:
         limits:
@@ -114,14 +114,15 @@ services:
         condition: service_healthy
       evo-auth:
         condition: service_healthy
-    entrypoint: docker/entrypoints/rails.sh
-    command: ["bundle", "exec", "rails", "s", "-p", "3000", "-b", "0.0.0.0"]
+    # CORRIGIDO: migrations explícitas + removido entrypoint externo
+    command: bash -c "bundle exec rails db:prepare && bundle exec rails s -p 3000 -b 0.0.0.0"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:3000/health/live"]
       interval: 30s
       timeout: 10s
-      retries: 5
-      start_period: 120s
+      # CORRIGIDO: retries e start_period aumentados
+      retries: 10
+      start_period: 180s
     deploy:
       resources:
         limits:
@@ -153,8 +154,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-    entrypoint: docker/entrypoints/rails.sh
-    command: ["bundle", "exec", "sidekiq", "-C", "config/sidekiq.yml"]
+    # CORRIGIDO: removido entrypoint externo
+    command: bash -c "bundle exec sidekiq -C config/sidekiq.yml"
     deploy:
       resources:
         limits:
