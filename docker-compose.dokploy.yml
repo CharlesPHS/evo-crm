@@ -29,17 +29,6 @@ services:
       - redis_data:/data
     networks:
       - app_net
-    healthcheck:
-      test:
-        - CMD
-        - redis-cli
-        - -a
-        - ${REDIS_PASSWORD}
-        - ping
-      interval: 10s
-      timeout: 5s
-      retries: 20
-      start_period: 20s
 
   evo_auth:
     image: evoapicloud/evo-auth-service-community:latest
@@ -83,7 +72,7 @@ services:
       postgres:
         condition: service_healthy
       redis:
-        condition: service_healthy
+        condition: service_started
     networks:
       - app_net
     expose:
@@ -125,7 +114,7 @@ services:
       postgres:
         condition: service_healthy
       redis:
-        condition: service_healthy
+        condition: service_started
     networks:
       - app_net
 
@@ -170,7 +159,7 @@ services:
       postgres:
         condition: service_healthy
       redis:
-        condition: service_healthy
+        condition: service_started
       evo_auth:
         condition: service_started
     networks:
@@ -204,7 +193,7 @@ services:
       postgres:
         condition: service_healthy
       redis:
-        condition: service_healthy
+        condition: service_started
     networks:
       - app_net
 
@@ -272,7 +261,7 @@ services:
       APP_URL: https://${API_DOMAIN}
     depends_on:
       redis:
-        condition: service_healthy
+        condition: service_started
       evo_auth:
         condition: service_started
       evo_core:
@@ -296,7 +285,7 @@ services:
       BOT_RUNTIME_POSTBACK_BASE_URL: http://evo_crm:3000
     depends_on:
       redis:
-        condition: service_healthy
+        condition: service_started
     networks:
       - app_net
     expose:
