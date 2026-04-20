@@ -19,19 +19,27 @@ services:
   redis:
     image: redis:7-alpine
     restart: unless-stopped
-    command: sh -c 'redis-server --appendonly yes --requirepass "$$REDIS_PASSWORD"'
-    environment:
-      REDIS_PASSWORD: ${REDIS_PASSWORD}
+    command:
+      - redis-server
+      - --appendonly
+      - "yes"
+      - --requirepass
+      - ${REDIS_PASSWORD}
     volumes:
       - redis_data:/data
     networks:
       - app_net
     healthcheck:
-      test: ["CMD-SHELL", "redis-cli -a \"$$REDIS_PASSWORD\" ping | grep PONG"]
+      test:
+        - CMD
+        - redis-cli
+        - -a
+        - ${REDIS_PASSWORD}
+        - ping
       interval: 10s
       timeout: 5s
-      retries: 15
-      start_period: 10s
+      retries: 20
+      start_period: 20s
 
   evo_auth:
     image: evoapicloud/evo-auth-service-community:latest
