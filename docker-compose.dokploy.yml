@@ -21,8 +21,6 @@ services:
     restart: unless-stopped
     command:
       - redis-server
-      - --appendonly
-      - "yes"
       - --requirepass
       - ${REDIS_PASSWORD}
     volumes:
