@@ -115,6 +115,9 @@ services:
       - crm_bundle:/usr/local/bundle
       - crm_node_modules:/app/node_modules
       - crm_cache:/app/tmp/cache
+      - ./crm-patches/app/controllers/api/v1/evolution_go/authorizations_controller.rb:/app/app/controllers/api/v1/evolution_go/authorizations_controller.rb:ro
+      - ./crm-patches/app/controllers/api/v1/evolution_go/settings_controller.rb:/app/app/controllers/api/v1/evolution_go/settings_controller.rb:ro
+      - ./crm-patches/app/controllers/api/v1/inboxes_controller.rb:/app/app/controllers/api/v1/inboxes_controller.rb:ro
     depends_on:
       postgres:
         condition: service_healthy
@@ -155,6 +158,9 @@ services:
       - crm_bundle:/usr/local/bundle
       - crm_node_modules:/app/node_modules
       - crm_cache:/app/tmp/cache
+      - ./crm-patches/app/controllers/api/v1/evolution_go/authorizations_controller.rb:/app/app/controllers/api/v1/evolution_go/authorizations_controller.rb:ro
+      - ./crm-patches/app/controllers/api/v1/evolution_go/settings_controller.rb:/app/app/controllers/api/v1/evolution_go/settings_controller.rb:ro
+      - ./crm-patches/app/controllers/api/v1/inboxes_controller.rb:/app/app/controllers/api/v1/inboxes_controller.rb:ro
     depends_on:
       postgres:
         condition: service_healthy
